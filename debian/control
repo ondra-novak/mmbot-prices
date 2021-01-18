@@ -1,0 +1,11 @@
+Source: prices
+Section: unbound
+Priority: optional
+Maintainer: Ondrej Novak <nov.ondrej@gmail.com>
+Standards-Version: 4.4.1
+
+Package: prices
+Architecture: any
+Depends: ${shlibs:Depends}, ${misc:Depends}
+Description: prices - scan crypto prices 
+

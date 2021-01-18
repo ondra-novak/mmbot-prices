@@ -1,0 +1,16 @@
+[Unit]
+Description=StockPrices
+After=network-online.target
+
+[Service]
+Type=simple
+User=ondra_services
+ExecStart=/opt/prices/bin/prices
+RemainAfterExit=no
+Restart=always
+RestartSec=1s
+
+
+[Install]
+WantedBy=multi-user.target
+

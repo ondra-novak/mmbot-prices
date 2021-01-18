@@ -1,0 +1,16 @@
+<!DOCTYPE html>
+<html>
+<head><meta charset="utf8" /></head>
+<body onload="start()">
+<h1>Delete or modify symbols</h1>
+<div class="form1"><label>Search for symbol: <input list="allsymbs" type="search" id="symbol"><button id="search">Search</label></button></div>
+<div class="results">Found results: <span id="res">n/a</span></div>
+<div class="form2"><label>Replace to (left empty to delete): <input  list="allsymbs" type="text" id="repl_symbol"></label><button id="replace">Replace / Delete</button></div>
+<script type="text/javascript" src="code.js"></script>
+<datalist id="allsymbs">
+</datalist>
+<div class="working" id="working" hidden="hidden">Processing set: <span id="process_set"></span></div>
+</body>
+</html>
+
+

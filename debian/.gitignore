@@ -1,0 +1,8 @@
+/.debhelper
+/debian/
+files
+*.debhelper
+*.substvars
+substvars
+/debhelper-build-stamp
+/prices

@@ -1,0 +1,1 @@
+/usr/local/bin/minihttp_proxy "https://devel.novacisko.cz" $*

@@ -1,0 +1,17 @@
+prices (1.0.2) unstable; urgency=medium
+
+  * Strip query from vpath
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Mon, 18 Jan 2021 19:07:00 +0200
+
+prices (1.0.1) unstable; urgency=medium
+
+  * Multistep collect + commit
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Mon, 18 Jan 2021 11:26:00 +0200
+
+prices (1.0.0) unstable; urgency=medium
+
+  * Initial Release.
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Sun, 17 Jan 2021 19:49:33 +0200

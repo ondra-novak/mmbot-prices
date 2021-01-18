@@ -1,0 +1,5 @@
+#!/bin/bash
+curl -s "https://billboard.service.cryptowat.ch/assets?quote=usd&limit=9999" | curl -s -d @- -X POST http://localhost:3456/collector/cryptowatch &  
+curl -s "https://ftx.com/api/markets" | curl -s -d @- -X POST http://localhost:3456/collector/ftx &
+wait
+curl -s -X POST http://localhost:3456/collector/commit

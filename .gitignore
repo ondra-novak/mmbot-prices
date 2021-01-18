@@ -1,0 +1,13 @@
+/bin/
+/log/
+/data/
+/secure_data/
+/inst/
+/.settings/
+CMakeFiles
+*.deb
+Makefile
+CMakeCache.txt
+install_manifest.txt
+cmake_install.cmake
+callgrind*
