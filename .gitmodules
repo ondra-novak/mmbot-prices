@@ -1,0 +1,13 @@
+[submodule "src/docdb"]
+	path = src/docdb
+	url = https://github.com/ondra-novak/docdb.git
+	branch = keyspace_redesign
+[submodule "src/shared"]
+	path = src/shared
+	url = https://github.com/ondra-novak/ondra_shared.git
+[submodule "src/imtjson"]
+	path = src/imtjson
+	url = https://github.com/ondra-novak/imtjson.git
+[submodule "src/userver"]
+	path = src/userver
+	url = https://github.com/ondra-novak/userver.git
