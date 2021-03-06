@@ -1,2 +1,4 @@
 # mmbot-prices
-Content of prices.mmbot.trade
+Content of https://prices.mmbot.trade
+
+
