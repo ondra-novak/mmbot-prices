@@ -12,11 +12,11 @@ div.footer {
     font-size: smaller;
     border-top: 1px solid;
     bottom: 0;
-    padding-bottom: 1em;    
-    margin-top: 5em;
-    position: sticky;
-    bottm: 0;
+    padding-bottom: 1em;
+    margin-top: 1em;
     background-color: #AAA;
+    position: sticky;
+    bottom: 0;
 }
 
 div.info {
@@ -47,7 +47,7 @@ body {
 }
 
 div.top_part {
-    height: 100vh;    
+    /* height: 100vh; */
 }
 
 .spinner {

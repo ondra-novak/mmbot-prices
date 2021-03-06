@@ -1,3 +1,25 @@
+prices (1.0.5) unstable; urgency=medium
+
+  * Fix DoS in host mapping
+  * Update libraries
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Sat, 6 Mar 2021 17:30:00 +0200
+
+
+prices (1.0.4) unstable; urgency=medium
+
+  * Chart and ohcl data
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Fri, 22 Jan 2021 15:10:00 +0200
+
+
+prices (1.0.3) unstable; urgency=medium
+
+  * Always include usd into symbols
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Wed, 20 Jan 2021 16:33:00 +0200
+
+
 prices (1.0.2) unstable; urgency=medium
 
   * Strip query from vpath

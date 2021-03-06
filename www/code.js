@@ -7,10 +7,13 @@ var control={};
 var events={
 	fld_asset:["input",getInfo],
 	fld_currency:["input",getInfo],
+	fld_from:["input",getInfo],
+	fld_to:["input",getInfo],
 	download:["click",doDownload]
 };
 
 var available_symbols ={};
+var stockChart;
 
 async function startApp() {
 
@@ -36,6 +39,23 @@ async function startApp() {
 	},document.createDocumentFragment()));
 		
 	available_symbols = symbols;
+	stockChart = new CanvasJS.Chart("chartContainer",{
+				    theme: "light2",
+				    backgroundColor: "#CFCFCF",
+				    zoomEnable: true,
+			    
+			      axisX: {
+			        labelAngle: -45
+			      },
+			      axisY: {
+    			   	includeZero:false
+				  },
+				  data: [{
+				  	   color: "#001020",
+			          type: "candlestick",			          			          
+		               dataPoints : []
+			          }]			      
+          });
 }
 
 function getInfo() {
@@ -47,8 +67,10 @@ function getInfo() {
 	if (days<0 || end == 0) days = 0
 	control.download.disabled = days == 0;
 	control.days.innerText = days;
-	var begdate = new Date(beg*24*60*60*1000);
-	var enddate = new Date(end*24*60*60*1000);
+	var from_tm = beg*24*60*60*1000;
+	var to_tm = end*24*60*60*1000;
+	var begdate = new Date(from_tm);
+	var enddate = new Date(to_tm);
 	var datemin = begdate.toISOString().substr(0,10);
 	var datemax = enddate.toISOString().substr(0,10);
 	if (days) {
@@ -62,6 +84,40 @@ function getInfo() {
 		                        control.fld_to.value = datemax;
 		if (control.fld_to.value<datemin) control.fld_to.value = datemin;		
 		if (control.fld_to.value>datemax) control.fld_to.value = datemax;
+	}
+	updateChart(control.fld_asset.value, control.fld_currency.value, 
+        fld_from.valueAsDate, fld_to.valueAsDate
+	);
+		
+}
+
+
+
+
+async function updateChart(asset, currency, from, to) {
+    var from_tm = Math.floor(from/1000);
+    var to_tm =  Math.floor(to/1000)+86400;
+    var dist = Math.abs(to_tm - from_tm)/86400;
+    var frame;
+    if (dist < 4) frame = 15;
+    else if (dist < 15) frame = 60;
+    else if (dist < 60) frame = 240;
+    else frame = 1440;
+
+	var data = await fetch("ohlc?asset="+encodeURIComponent(asset)
+			+"&currency="+encodeURIComponent(currency)
+			+"&from="+from_tm
+			+"&to="+to_tm
+			+"&timeframe="+frame).then(x=>x.json());
+	
+	if (data.length) {		
+		var opts =  stockChart.options;
+		opts.data[0].dataPoints = data.map(v=>{
+			var x = new Date(v[0]*1000);
+			var y = [v[1],v[2],v[3],v[4]];
+			return {x:x,y:y};	
+		});
+		stockChart.render();	
 	}
 }
 

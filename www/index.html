@@ -17,6 +17,7 @@
 <div class="label">Interval</div>
 <div class="fields"><input type="date" id="fld_from" min="2020-10-12" value="2020-10-12"> - <input type="date" id="fld_to"></div>
 <div class="info">Available days: <span id="days">0</span></div>
+<div id="chartContainer" style="height: 400px; width: 90%; margin:auto"></div>
 <div class="buttons"><button id="download" disabled="disabled">Download</button></div>
 </div>
 
@@ -32,6 +33,8 @@
 <p>Consider donation: BTC&nbsp;bc1q0ljtlv9krpt3xe28wsytag5y4pj8e52dzdmngr LTC&nbsp;ltc1q9fdkxertp4smq7l9mgtne2g5v0slrmd4g4x242 ETH&nbsp;0xbb80Ec0aBCE86300d0326b870f615F2a874EaC80</p>
 </div>
 
+<script type="text/javascript" src="jquery-1.11.1.min.js"></script>
+<script type="text/javascript" src="canvasjs.stock.min.js"></script>
 <script type="text/javascript" src="code.js"></script>
 </body>
 </html>

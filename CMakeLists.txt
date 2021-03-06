@@ -6,6 +6,8 @@ include_directories(BEFORE src/imtjson/src src src/docdb/src)
 add_compile_options(-std=c++17)
 add_compile_options(-Wall -Werror -Wno-noexcept-type)
 
+set(USERVER_NO_SSL 1)
+
 add_subdirectory (src/imtjson/src/imtjson)
 add_subdirectory (src/docdb/src/docdblib)
 add_subdirectory (src/userver)
