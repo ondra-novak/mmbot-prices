@@ -19,7 +19,7 @@ endif()
 
 install(PROGRAMS bin/prices DESTINATION bin)
 install(FILES conf/prices.conf DESTINATION "conf") 
-install(FILES www/index.html www/code.js www/style.css www/favicon.png DESTINATION "www") 
+install(DIRECTORY "www" DESTINATION ".") 
 install(PROGRAMS collect DESTINATION bin)
 install(DIRECTORY DESTINATION "data")
 install(DIRECTORY DESTINATION "log")
