@@ -401,6 +401,54 @@ int main(int argc, char **argv) {
 	std::mutex symbolMapLock;
 
 
+	server.addPath("/clean",[&](PHttpServerRequest &req, std::string_view vpath) {
+		if (!checkHost(req->getHost())) {
+			req->sendErrorPage(403);return true;
+		}
+		bool store = false;
+		if (req->getMethod() == "POST") {
+			store = true;
+		}
+		Batch batch;
+		req->setContentType("text/plain");
+		Stream s =req->send();
+		json::Value symbol;
+		json::Value chkTime;
+		double a = 0 ,b = 0,c = 0;
+		auto iter = pmap.scan();
+		while (iter.next()) {
+			auto key = iter.key();
+			if (key[0] != symbol) {
+				symbol = key[0];
+				chkTime = nullptr;
+				a=b=c=0;
+				s.writeNB("# Checking symbol: ");
+				s.writeNB(symbol.getString());
+				s.writeNB("\r\n");
+				s.flush();
+				if (store) db.commitBatch(batch);
+			}
+			a = b;
+			b = c;
+			c = iter.value().getNumber();
+			auto tm = key[1];
+			if (a != 0) {
+				double avgb = sqrt(a*c);
+				double df1 = std::abs(avgb - b)/b;
+				double df2 = std::abs(a-c)/b;
+				if (df2*3 < df1 && df1>0.005) {
+					char buff[1000];
+					snprintf(buff,sizeof(buff),"%s %llu %g %g %g\r\n",symbol.getString().data, chkTime.getUIntLong(), a, b, c);
+					s.write(buff);
+					pmap.set(batch, {symbol, chkTime}, avgb);
+				}
+			}
+			chkTime = tm;
+		}
+		if (store) db.commitBatch(batch);
+		return true;
+	});
+
 	server.addPath("/collector", [&](PHttpServerRequest &req, std::string_view vpath){
 		if (req->getMethod() == "POST") {
 			if (!checkHost(req->getHost())) {
@@ -573,21 +621,11 @@ int main(int argc, char **argv) {
 
 	asyncProvider = server.getAsyncProvider();
 
-	auto stopServer = [](int) {
-		asyncProvider->stop();
-	};
 
-	signal(SIGINT, stopServer);
-	signal(SIGTERM, stopServer);
-
-	DGramSocket dgsck(NetAddr::fromString("localhost", "5569")[0]);
-	dgsck.readAsync(server.getAsyncProvider(), [](std::string_view data){
-		logInfo(data);
-	},-1);
-
-
+	server.stopOnSignal();
 	server.addThread();
 	server.stop();
+	logNote("---- STOP ----");
 
 
 

@@ -1,3 +1,10 @@
+prices (1.0.7) unstable; urgency=medium
+
+  * Endpoint to clean a fix data values 
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Sun, 21 Mar 2021 18:38:00 +0200
+
+
 prices (1.0.6) unstable; urgency=medium
 
   * Fix missing files
