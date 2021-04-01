@@ -17,6 +17,7 @@
 #include <imtjson/parser.h>
 #include "../docdb/src/docdblib/aggregator_view.h"
 #include "../docdb/src/docdblib/db.h"
+#include "../docdb/src/docdblib/inspector.h"
 #include "../docdb/src/docdblib/json_map.h"
 #include "../shared/default_app.h"
 #include "../shared/linux_crash_handler.h"
@@ -395,6 +396,12 @@ int main(int argc, char **argv) {
 			return false;
 		}
 
+	});
+
+	docdb::Inspector inspector(db);
+	server.addPath("/inspector", [&](PHttpServerRequest &req, const std::string_view &vpath){
+		QueryParser qp(vpath);
+		return inspector.userverRequest(req, qp);
 	});
 
 	std::map<std::string, std::pair<double,unsigned int> > symbolMap;
