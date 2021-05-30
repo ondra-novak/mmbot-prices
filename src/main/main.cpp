@@ -400,8 +400,13 @@ int main(int argc, char **argv) {
 
 	docdb::Inspector inspector(db);
 	server.addPath("/inspector", [&](PHttpServerRequest &req, const std::string_view &vpath){
-		QueryParser qp(vpath);
-		return inspector.userverRequest(req, qp);
+		if (req->getMethod()!="GET" && !checkHost(req->getHost())) {
+			req->sendErrorPage(403);
+			return true;
+		} else {
+			QueryParser qp(vpath);
+			return inspector.userverRequest(req, qp);
+		}
 	});
 
 	std::map<std::string, std::pair<double,unsigned int> > symbolMap;

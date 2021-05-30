@@ -1,3 +1,11 @@
+prices (1.0.8) unstable; urgency=medium
+
+  * Inspector
+  * Update libraries (bugfix) 
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Sun, 30 May 2021 12:00:00 +0200
+
+
 prices (1.0.7) unstable; urgency=medium
 
   * Endpoint to clean a fix data values 
