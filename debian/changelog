@@ -1,3 +1,9 @@
+prices (1.0.9) unstable; urgency=medium
+
+  * Added bitfinex and binance
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Sun, 30 May 2021 12:00:00 +0200
+
 prices (1.0.8) unstable; urgency=medium
 
   * Inspector

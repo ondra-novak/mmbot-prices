@@ -142,6 +142,17 @@ protected:
 
 };
 
+template<typename T>
+void updatePrice(T &iter, double price) {
+	if (iter.second == 0) {
+		iter.first = price;
+		iter.second = 1;
+	} else {
+		iter.first += price;
+		iter.second ++;
+	}
+}
+
 int main(int argc, char **argv) {
 
 
@@ -409,7 +420,9 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	std::map<std::string, std::pair<double,unsigned int> > symbolMap;
+	using SymbolMap=std::map<std::string, std::pair<double,unsigned int> >;
+
+	SymbolMap symbolMap;
 	std::mutex symbolMapLock;
 
 
@@ -531,7 +544,7 @@ int main(int argc, char **argv) {
 			} else if (vpath == "/commit") {
 				Batch batch;
 				for (const auto &m: symbolMap) {
-					pmap.set(batch, {m.first, curTime}, m.second.first/m.second.second);
+					pmap.set(batch, {m.first, curTime}, m.second.first/std::max<double>(1,m.second.second));
 				}
 				db.commitBatch(batch);
 				req->log("Commit ", symbolMap.size(), " entries (timestamp: ",curTime,")");
@@ -545,12 +558,7 @@ int main(int argc, char **argv) {
 					 auto symbol = x["symbol"].toString();
 					 auto price = x["price"].getNumber();
 					 if (price && std::isfinite(price)) {
-						 auto res = symbolMap.emplace(symbol.str(), std::pair{price,1} );
-						 if (!res.second) {
-							 res.first->second.first += price;
-							 res.first->second.second ++;
-						 }
-
+						 symbolMap.emplace(symbol.str(), std::pair{price,0} );
 					 }
 				}
 				req->setStatus(202);
@@ -580,11 +588,63 @@ int main(int argc, char **argv) {
 
 				  if (!skip && std::isfinite(price) && price) {
 						 auto res = symbolMap.emplace(symbol, std::pair{price,1} );
-						 if (!res.second) {
-							 res.first->second.first += price;
-							 res.first->second.second ++;
-						 }
+						 if (!res.second) updatePrice(res.first->second, price);
 				  }
+				}
+				req->setStatus(202);
+				req->send("");
+				return true;
+			} else if (vpath == "/bitfinex") {
+				for (json::Value row: body) {
+					auto symbol = row[0].getString();
+					if (symbol[0] == 't') {
+						auto splt = symbol.substr(1).split(":");
+						auto asset = splt();
+						auto currency = splt();
+						if (currency.empty()) {
+							currency = asset.substr(3);
+							asset = asset.substr(0,3);
+						}
+						if (currency == "USD") {
+							double price = row[7].getNumber();
+							std::string symbol = asset;
+							std::transform(symbol.begin(), symbol.end(),symbol.begin(),[](char c){return std::tolower(c);});
+							auto res = symbolMap.emplace(symbol, std::pair{price,1} );
+							if (!res.second) updatePrice(res.first->second, price);
+						}
+					}
+				}
+				req->setStatus(202);
+				req->send("");
+				return true;
+			} else if (vpath == "/binance") {
+				SymbolMap smap;
+				std::string symbol;
+				for (json::Value row: body) {
+					symbol.clear();
+					auto symb = row["symbol"].getString();
+					if (symb.endsWith("USDT")) {
+						symbol = symb.substr(0, symb.length-4);
+					} else if (symb.endsWith("BUSD")) {
+						symbol = symb.substr(0, symb.length-4);
+					} else if (symb.endsWith("TUSD")) {
+						symbol = symb.substr(0, symb.length-4);
+					} else if (symb.endsWith("CUSD")) {
+						symbol = symb.substr(0, symb.length-4);
+					} else if (symb.endsWith("PAX")) {
+						symbol = symb.substr(0, symb.length-3);
+					}
+					double price = row["price"].getNumber();
+					if (!symbol.empty()) {
+						std::transform(symbol.begin(), symbol.end(),symbol.begin(),[](char c){return std::tolower(c);});
+						auto res = smap.emplace(symbol,std::pair{price,1});
+						if (!res.second) updatePrice(res.first->second, price);
+					}
+				}
+				for (const auto &row: smap) {
+					double price = row.second.first/row.second.second;
+					auto res = symbolMap.emplace(row.first, std::pair{price,1} );
+					if (!res.second) updatePrice(res.first->second, price);
 				}
 				req->setStatus(202);
 				req->send("");
