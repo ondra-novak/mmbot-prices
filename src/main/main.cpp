@@ -24,7 +24,7 @@
 #include "../shared/logOutput.h"
 #include "../userver/dgramsocket.h"
 #include "../userver/http_client.h"
-#include "../userver/http_server.h"
+#include "../userver/openapi.h"
 #include "../userver/query_parser.h"
 
 using ondra_shared::logInfo;
@@ -78,9 +78,8 @@ static void iterateData(Source &pmap, std::string_view asset, std::string_view c
 }
 
 template<typename Source>
-static bool generateData(Source &pmap, PHttpServerRequest &req, const std::string_view &vpath, unsigned int timeMult) {
+static bool generateData(Source &pmap, PHttpServerRequest &req, const RequestParams &qp, unsigned int timeMult) {
 	if (req->getMethod() == "GET") {
-		QueryParser qp(vpath);
 		auto asset=qp["asset"];
 		auto currency=qp["currency"];
 		auto from=qp["from"].getUInt();
@@ -108,7 +107,7 @@ static bool generateData(Source &pmap, PHttpServerRequest &req, const std::strin
 	}
 }
 
-class MyHttpServer: public HttpServer {
+class MyHttpServer: public OpenAPIServer {
 public:
 	MyHttpServer():lo("http") {}
 
@@ -225,9 +224,27 @@ int main(int argc, char **argv) {
 	});
 
 
+	server.setInfo({
+		"Crypto Prices API","1.0","Crypto Prices API","","Ondrej Novak","","nov.ondrej@gmail.com"
+	});
 
-	server.addPath("/import", [&](PHttpServerRequest &req, const std::string_view &vpath) mutable {
-		if (req->getMethod() == "POST") {
+	server.addPath("/import")
+		.POST("Admin","Import data from couchdb databse","",{},"couchdb result object",{
+				{"application/json","CouchDB result object","object","",{
+								{"rows","array","Rows",{
+										{"row","object","One row",{
+												{"id","string","Document id - must be timestamp/10"},
+												{"doc","object","Couchdb Document",{
+														{"prices","assoc","List of currencies and prices",{
+																{"price","number","price"}
+														}}
+												}}
+										}}
+								}}
+						}}
+		},{{202,"Accepted",{}}})
+		.handler([&](PHttpServerRequest &req, const RequestParams &) mutable {
+
 			if (!checkHost(req->getHost())) {
 				req->sendErrorPage(403);return true;
 			}
@@ -248,12 +265,14 @@ int main(int argc, char **argv) {
 			};
 			req->sendErrorPage(202);
 			return true;
-		} else {
-			return false;
-		}
 	});
 
-	server.addPath("/symbols", [&](PHttpServerRequest &req, const std::string_view &vpath)mutable{
+	server.addPath("/symbols")
+		.GET("Public","List all available symbols", "", {}, {{200,"OK",{{"application/json","symbols","assoc","List of symbols",{
+				{"","string","SymbolName"},
+				{"","number","Count of records"}
+		}}}}})
+	.handler([&](PHttpServerRequest &req, const RequestParams &params)mutable{
 		if (req->getMethod() == "GET") {
 			req->setContentType("application/json");;
 			Stream s = req->send();
@@ -282,48 +301,65 @@ int main(int argc, char **argv) {
 		}
 	});
 
-	server.addPath("/minute", [&](PHttpServerRequest &req, const std::string_view &vpath){
-		return generateData(pmap, req, vpath,1);
+	server.addPath("/minute")
+		.GET("Public","Download minute data","",{
+				{"asset","query","string","Selected asset"},
+				{"currency","query","string","Selected currency"},
+				{"from","query","int64","From timestamp",{}},
+				{"to","query","int64","To timestamp",{},false}
+		},{
+				{200,"OK",{{"application/json","graph","array","Graph of prices",{
+						{"pair","anyOf","",{
+								{"time","int64","Time in seconds"},
+								{"price","number","Price"}
+						}}
+				}}}}
+		})
+	.handler([&](PHttpServerRequest &req, const RequestParams &params){
+		return generateData(pmap, req, params,1);
 	});
-	server.addPath("/minute.php", [&](PHttpServerRequest &req, const std::string_view &vpath){
-		if (vpath.size() < 2 && req->getMethod() == "GET") {
-			req->setContentType("application/json");;
-			Stream s = req->send();
-			s.putCharNB('{');
-			bool comma = false;
-			for (auto iter = totalRange.scan(); iter.next();) {
-				if (comma) {
-					s.write(",\r\n");
-				} else {
-					comma = true;
-				}
-				auto k = iter.key();
-				auto v = iter.value();
-				if (k.getString() == "usd")  {
-					v = {0,999999,999999};
-				}
-				k.serialize([&](char c){s.putCharNB(c);});
-				s.putChar(':');
-				json::Value(v[2].getUInt()*daysec/60).serialize([&](char c){s.putCharNB(c);});
-			}
-			s.putCharNB('}');
-			s.flush();
-			return true;
-		} else {
-			return generateData(pmap, req, vpath,1);
-		}
+	server.addPath("/daily")
+		.GET("Public","Download daily public data","",{
+				{"asset","query","string","Selected asset"},
+				{"currency","query","string","Selected currency"},
+				{"from","query","int64","From timestamp",{},false},
+				{"to","query","int64","To timestamp",{},false}
+		},{
+				{200,"OK",{{"application/json","daily","array","Daily prices",{
+						{"pair","oneOf","",{
+								{"time","int64","Time in seconds"},
+								{"price","number","Price"}
+						}}
+				}}}}
+		})
+	.handler([&](PHttpServerRequest &req, const RequestParams &params){
+		return generateData(dailyPrice, req, params,daysec);
 	});
-	server.addPath("/daily", [&](PHttpServerRequest &req, const std::string_view &vpath){
-		return generateData(dailyPrice, req, vpath,daysec);
-	});
-	server.addPath("/ohlc", [&](PHttpServerRequest &req, const std::string_view &vpath){
+	server.addPath("/ohlc")
+			.GET("Public","Download OHLC public data","",{
+					{"asset","query","string","Selected asset"},
+					{"currency","query","string","Selected currency"},
+					{"from","query","int64","From timestamp",{},false},
+					{"to","query","int64","To timestamp",{},false},
+					{"tfrm","query","integer","Timeframe"}
+			},{
+					{200,"OK",{{"application/json","ohlc","array","List of [time,o,h,l,c]",{
+							{"pair","oneOf","",{
+									{"time","int64","Time in seconds"},
+									{"o","number","Open price"},
+									{"h","number","High price"},
+									{"l","number","Low price"},
+									{"c","number","Close price"}
+							}}
+					}}}}
+			})
+	.handler([&](PHttpServerRequest &req, const RequestParams &params){
 		if (req->getMethod() == "GET") {
-			QueryParser qp(vpath);
-			auto asset=qp["asset"];
-			auto currency=qp["currency"];
-			auto from=qp["from"].getUInt();
-			auto to=qp["to"].getUInt();
-			auto tfrm = std::max<std::size_t>(1,qp["timeframe"].getUInt())*60;
+			auto asset=params["asset"];
+			auto currency=params["currency"];
+			auto from=params["from"].getUInt();
+			auto to=params["to"].getUInt();
+			auto tfrm = std::max<std::size_t>(1,params["timeframe"].getUInt())*60;
 
 			char buff[500];
 
@@ -363,15 +399,23 @@ int main(int argc, char **argv) {
 			return false;
 		}
 	});
-	server.addPath("/history", [&](PHttpServerRequest &req, std::string_view vpath){
-		if (req->getMethod() == "GET" && !vpath.empty()) {
-			QueryParser qp(vpath);
-			std::string_view path = qp.getPath();
-			if (path[0] == '/') path = path.substr(1);
-			json::Value at(std::strtoul(path.data(), nullptr, 10));
+	server.addPath("/history/{time}")
+		.GET("Public","Retrieve one page of the history","",{
+				{"time","path","Timestamp","uint64",{}},
+				{"currency","query","Specity base currency (optional)","string",{}, false}
+		},{
+				{200,"OK",{{"application/json","snapshot","assoc","History snapshot",{
+								{"symbol","string","SymbolName"},
+								{"price","number","Price"}
+		}}}}})
+	.handler([&](PHttpServerRequest &req, const RequestParams &params){
+		if (req->getMethod() == "GET") {
+			auto tm = params["~time"];
+			if (!tm.defined) return false;
+			json::Value at(tm.getUInt());
 			bool comma = false;
 			double divider = 1;
-			auto cur = qp["currency"];
+			auto cur = params["currency"];
 			if (cur.defined) {
 				json::Value price = pmap.lookup({cur, at});
 				if (!price.defined()) {
@@ -410,7 +454,7 @@ int main(int argc, char **argv) {
 	});
 
 	docdb::Inspector inspector(db);
-	server.addPath("/inspector", [&](PHttpServerRequest &req, const std::string_view &vpath){
+	server.addPath("/inspector",[&](PHttpServerRequest &req, const std::string_view &vpath){
 		if (req->getMethod()!="GET" && !checkHost(req->getHost())) {
 			req->sendErrorPage(403);
 			return true;
@@ -426,7 +470,9 @@ int main(int argc, char **argv) {
 	std::mutex symbolMapLock;
 
 
-	server.addPath("/clean",[&](PHttpServerRequest &req, std::string_view vpath) {
+	server.addPath("/clean")
+	.POST("Admin","Remove invalid values","",{},"Request has no body",{},{{200,"OK",{}}})
+	.handler([&](PHttpServerRequest &req, RequestParams vpath) {
 		if (!checkHost(req->getHost())) {
 			req->sendErrorPage(403);return true;
 		}
@@ -547,7 +593,7 @@ int main(int argc, char **argv) {
 					pmap.set(batch, {m.first, curTime}, m.second.first/std::max<double>(1,m.second.second));
 				}
 				db.commitBatch(batch);
-				req->log("Commit ", symbolMap.size(), " entries (timestamp: ",curTime,")");
+				req->log(userver::LogLevel::progress,"Commit ", symbolMap.size(), " entries (timestamp: ",curTime,")");
 				symbolMap.clear();
 				req->setStatus(202);
 				req->send("");
@@ -657,7 +703,7 @@ int main(int argc, char **argv) {
 			return false;
 		}
 	});
-	server.addPath("/compact", [&](PHttpServerRequest &req, std::string_view ){
+	server.addPath("/compact",[&](PHttpServerRequest &req, std::string_view ){
 		if (req->getMethod()=="POST" ) {
 			if (!checkHost(req->getHost())) {
 				req->sendErrorPage(403);return true;
@@ -676,7 +722,7 @@ int main(int argc, char **argv) {
 		}
 	});
 	std::string docroot = www_section.mandatory["document_root"].getPath();
-	server.addPath("", [&](PHttpServerRequest &req, std::string_view vpath){
+	server.addPath("",[&](PHttpServerRequest &req, std::string_view vpath){
 		auto pos = vpath.find('?');
 		if (pos != vpath.npos) {
 			vpath = vpath.substr(0,pos);
@@ -687,6 +733,8 @@ int main(int argc, char **argv) {
 		fname.append(vpath);
 		return req->sendFile(std::move(req), fname);
 	});
+
+	server.addSwagFilePath("/swagger.json");
 
 	server.start(NetAddr::fromString(server_section.mandatory["listen"].getString(), "3456"),
 			server_section.mandatory["threads"].getUInt(), 1);
