@@ -118,7 +118,7 @@ public:
 			auto dur = std::chrono::duration_cast<std::chrono::microseconds>(now-req.getRecvTime());
 			char buff[100];
 			snprintf(buff,100,"%1.3f ms", dur.count()*0.001);
-			lo.progress("#$1 $2 $3 $4 $5 $6", req.getIdent(), req.getStatus(), req.getMethod(), req.getHost(), req.getURI(), buff);
+			lo.progress("#$1 $2 $3 $4 $5 $6", req.getIdent(), req.getStatus(), req.getMethod(), req.getHost(), req.getPath(), buff);
 		}
 	}
 	virtual void log(const HttpServerRequest &req, const std::string_view &msg) override {
