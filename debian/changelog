@@ -1,3 +1,9 @@
+prices (1.0.10) unstable; urgency=medium
+
+  * Binance - removed all USD stable coints except USDT and BUSD
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Fri, 21 Oct 2022 16:51:00 +0200
+
 prices (1.0.9) unstable; urgency=medium
 
   * Added bitfinex and binance

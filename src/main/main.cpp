@@ -673,12 +673,6 @@ int main(int argc, char **argv) {
 						symbol = symb.substr(0, symb.length-4);
 					} else if (symb.endsWith("BUSD")) {
 						symbol = symb.substr(0, symb.length-4);
-					} else if (symb.endsWith("TUSD")) {
-						symbol = symb.substr(0, symb.length-4);
-					} else if (symb.endsWith("CUSD")) {
-						symbol = symb.substr(0, symb.length-4);
-					} else if (symb.endsWith("PAX")) {
-						symbol = symb.substr(0, symb.length-3);
 					}
 					double price = row["price"].getNumber();
 					if (!symbol.empty()) {
