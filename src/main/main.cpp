@@ -26,6 +26,7 @@
 #include "../userver/http_client.h"
 #include "../userver/openapi.h"
 #include "../userver/query_parser.h"
+#include "../userver/async_provider.h"
 
 using ondra_shared::logInfo;
 using ondra_shared::logWarning;
@@ -111,7 +112,7 @@ class MyHttpServer: public OpenAPIServer {
 public:
 	MyHttpServer():lo("http") {}
 
-	virtual void log(ReqEvent event, const HttpServerRequest &req) override {
+	virtual void log(ReqEvent event, const HttpServerRequest &req) noexcept override {
 		if (event == ReqEvent::done) {
 			std::lock_guard _(mx);
 			auto now = std::chrono::system_clock::now();
@@ -121,11 +122,11 @@ public:
 			lo.progress("#$1 $2 $3 $4 $5 $6", req.getIdent(), req.getStatus(), req.getMethod(), req.getHost(), req.getPath(), buff);
 		}
 	}
-	virtual void log(const HttpServerRequest &req, const std::string_view &msg) override {
+	virtual void log(const HttpServerRequest &req, const std::string_view &msg) noexcept override {
 		std::lock_guard _(mx);
 		lo.note("#$1 $2", req.getIdent(), msg);
 	}
-	virtual void unhandled() override {
+	virtual void unhandled() noexcept override {
 		try {
 			throw;
 		} catch (std::exception &e) {
@@ -731,13 +732,15 @@ int main(int argc, char **argv) {
 	server.addSwagFilePath("/swagger.json");
 
 	server.start(NetAddr::fromString(server_section.mandatory["listen"].getString(), "3456"),
-			server_section.mandatory["threads"].getUInt(), 1);
+			userver::AsyncProviderConfig{
+	            1, 
+	            static_cast<int>(server_section.mandatory["threads"].getUInt())});
 
 	asyncProvider = server.getAsyncProvider();
 
 
 	server.stopOnSignal();
-	server.addThread();
+	server.runAsWorker();
 	server.stop();
 	logNote("---- STOP ----");
 

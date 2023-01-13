@@ -1,6 +1,5 @@
 #!/bin/bash
 curl -s "https://billboard.service.cryptowat.ch/assets?quote=usd&limit=9999" | curl -s -d @- -X POST http://localhost:3456/collector/cryptowatch &  
-curl -s "https://ftx.com/api/markets" | curl -s -d @- -X POST http://localhost:3456/collector/ftx &
 curl -s "https://api-pub.bitfinex.com/v2/tickers?symbols=ALL" | curl -s -d @- -X POST http://localhost:3456/collector/bitfinex &
 curl -s "https://api.binance.com/api/v3/ticker/price" | curl -s -d @- -X POST http://localhost:3456/collector/binance &
 
