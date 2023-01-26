@@ -1,3 +1,9 @@
+prices (1.0.11) unstable; urgency=medium
+
+  * Endpoint /purge to remove specific symbols
+
+ -- Ondra Novak <nov.ondrej@gmail.com>  Wed, 25 Jan 2023 19:18:00 +0100
+
 prices (1.0.10) unstable; urgency=medium
 
   * Binance - removed all USD stable coints except USDT and BUSD

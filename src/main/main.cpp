@@ -411,7 +411,7 @@ int main(int argc, char **argv) {
 		}}}}})
 	.handler([&](PHttpServerRequest &req, const RequestParams &params){
 		if (req->getMethod() == "GET") {
-			auto tm = params["~time"];
+			auto tm = params["time"];
 			if (!tm.defined) return false;
 			json::Value at(tm.getUInt());
 			bool comma = false;
@@ -698,6 +698,49 @@ int main(int argc, char **argv) {
 			return false;
 		}
 	});
+	server.addPath("/purge", [&](PHttpServerRequest &req, std::string_view vpath){
+	        if (req->getMethod() == "POST") {
+	            if (!checkHost(req->getHost())) {
+	                req->sendErrorPage(403);return true;
+	            }
+                Stream b = req->getBody();
+                auto body = json::Value::parse([&]()->int {
+                    return b.getChar();
+                });
+                json::Object ret;
+                Batch batch;
+                for (json::Value item: body) {
+                    std::string_view symbol = item.getString();
+
+                    std::size_t sz = 0;
+                    {
+                        auto iter = pmap.range({symbol,0}, {symbol, std::numeric_limits<std::uint64_t>::max()});
+                        while (iter.next()) {
+                            pmap.erase(batch, iter.key());
+                            ++sz;
+                        }
+                    }
+                    {
+                        auto iter = dailyPrice.range({symbol,0}, {symbol, std::numeric_limits<std::uint64_t>::max()});
+                        while (iter.next()) {
+                            dailyPrice.erase(batch, iter.key());
+                        }
+                    }
+                    totalRange.erase(batch, symbol);
+                    db.commitBatch(batch);
+                    batch.Clear();
+                    ret.set(symbol, sz);
+                }
+                json::String data = json::Value(ret).stringify();
+                req->setStatus(200);
+                req->setContentType("application/json");
+                req->send(data.str());
+                return true;
+
+	        } else {
+	            return false;
+	        }
+	});
 	server.addPath("/compact",[&](PHttpServerRequest &req, std::string_view ){
 		if (req->getMethod()=="POST" ) {
 			if (!checkHost(req->getHost())) {
@@ -729,11 +772,11 @@ int main(int argc, char **argv) {
 		return req->sendFile(std::move(req), fname);
 	});
 
-	server.addSwagFilePath("/swagger.json");
+	server.addSwagBrowser("/swagger");
 
 	server.start(NetAddr::fromString(server_section.mandatory["listen"].getString(), "3456"),
 			userver::AsyncProviderConfig{
-	            1, 
+	            1,
 	            static_cast<int>(server_section.mandatory["threads"].getUInt())});
 
 	asyncProvider = server.getAsyncProvider();
